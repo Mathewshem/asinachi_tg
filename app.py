@@ -13,6 +13,10 @@ from apscheduler.triggers.cron import CronTrigger
 from loguru import logger
 from telegram import Bot
 
+from config import settings
+masked = settings.token[:8] + "..." if settings.token else "(missing)"
+st.warning(f"Token loaded: {masked}")
+
 # Try to use HTTPXRequest if the installed PTB supports it
 try:
     from telegram.request import HTTPXRequest
