@@ -13,6 +13,14 @@ from apscheduler.triggers.cron import CronTrigger
 from loguru import logger
 from telegram import Bot
 
+# Try to use HTTPXRequest if the installed PTB supports it
+try:
+    from telegram.request import HTTPXRequest
+    HAVE_HTTPX = True
+except Exception:
+    HTTPXRequest = None
+    HAVE_HTTPX = False
+
 from config import settings
 from tg_client import broadcast
 
@@ -50,15 +58,17 @@ def save_message(text: str, media_path: str | None):
 
 # ── Cached bot & scheduler ─────────────────────────────────────────────────────
 def make_bot() -> Bot:
-    # Larger pool + timeouts so bursts don't starve connections
-    req = HTTPXRequest(
-        connect_timeout=10.0,
-        read_timeout=60.0,
-        write_timeout=10.0,
-        pool_timeout=10.0,
-        connection_pool_size=50,   # bigger than default
-    )
-    return Bot(token=settings.token, request=req)
+    if HAVE_HTTPX:
+        req = HTTPXRequest(
+            connect_timeout=10.0,
+            read_timeout=60.0,
+            write_timeout=10.0,
+            pool_timeout=10.0,
+            connection_pool_size=50,
+        )
+        return Bot(token=settings.token, request=req)
+    # Fallback: default request client (works, just fewer pool controls)
+    return Bot(token=settings.token)
 
 
 @st.cache_resource
